@@ -51,7 +51,14 @@ export async function restoreSession() {
 const itemsFor = (rec) => JSON.parse(JSON.stringify(rec.serviceKey === 'merek' || !UPLOAD_PRESETS[rec.serviceKey] ? MEREK_UPLOAD_ITEMS : UPLOAD_PRESETS[rec.serviceKey]));
 const stKey = () => `arthera_up_${current.lk.slice(0, 16)}`;
 const fileKey = (id) => `${current.lk.slice(0, 16)}:${id}`;
-const getUp = () => store.get(stKey(), { values: {}, files: {} });
+// Berkas & isian yang sudah diterima Arthera (dicatat Admin di data klien terenkripsi) menjadi dasar;
+// isian di perangkat klien tetap bisa menimpa atau melengkapinya.
+const getUp = () => {
+  const u = store.get(stKey(), { values: {}, files: {} });
+  const r = current && current.rec && current.rec.received;
+  if (!r) return u;
+  return { values: { ...(r.values || {}), ...u.values }, files: { ...(r.files || {}), ...u.files } };
+};
 const setUp = (v) => store.set(stKey(), v);
 const isOptional = (it) => it.no === '•' || /opsional/i.test(`${it.label} ${it.hint || ''}`);
 
@@ -220,7 +227,7 @@ function renderUploads(el, rec, items, rerenderAll) {
     </div>`;
 
   // pratinjau gambar dari IndexedDB
-  secItems.filter((it) => it.type === 'upload' && up.files[it.id]).forEach(async (it) => {
+  secItems.filter((it) => it.type === 'upload' && up.files[it.id] && !up.files[it.id].received).forEach(async (it) => {
     const rec2 = await idb.get(fileKey(it.id));
     const box = $(`[data-thumb="${it.id}"]`, el);
     if (!box || !rec2) return;
@@ -279,7 +286,12 @@ function itemHTML(it, up) {
   if (it._skipped) {
     ctrl = `<div class="notice" style="padding:10px 14px">${icon('check-circle')}<span>Tidak perlu diisi karena file NIB sudah diunggah.</span></div>`;
   } else if (it.type === 'upload') {
-    ctrl = f ? `
+    ctrl = f && f.received ? `
+      <div class="file-chip">
+        <div class="thumb">${icon('file-check-2')}</div>
+        <div class="meta"><b>${esc(f.name)}</b><span>✓ Diterima Arthera${f.at ? ` · ${esc(f.at)}` : ''}</span></div>
+        <label class="icon-btn" aria-label="Kirim versi baru" style="cursor:pointer">${icon('refresh')}<input type="file" hidden accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" data-replace="${it.id}"></label>
+      </div>` : f ? `
       <div class="file-chip">
         <div class="thumb" data-thumb="${it.id}">${icon(/pdf/i.test(f.type) ? 'file-text' : 'image')}</div>
         <div class="meta"><b>${esc(f.name)}</b><span>✓ Tersimpan · ${fmtBytes(f.size)}</span></div>

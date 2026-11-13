@@ -1104,3 +1104,9 @@ body { font-size: 16.5px; line-height: 1.75; color: var(--text); }
   .num-grid b { font-size: 2rem; }
   .num-grid span { display: block; margin-top: 8px; font-size: 9.5px; letter-spacing: .14em; line-height: 1.5; }
 }
+
+/* Kolom tata letak unggahan tidak boleh melebar melebihi layar (baris bagian A-E digeser di dalamnya) */
+.upload-layout > * { min-width: 0; }
+.doc-item { grid-template-columns: 38px minmax(0, 1fr); }
+.file-chip .meta { min-width: 0; flex: 1; }
+.file-chip .meta b { display: block; overflow-wrap: anywhere; }
