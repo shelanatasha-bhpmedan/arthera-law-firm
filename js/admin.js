@@ -5,9 +5,10 @@ import { icon } from './icons.js';
 import { buildVault, decryptJSON, normalizeEmail, lookupKey } from './vault.js';
 import { loadVault, setSession } from './portal.js';
 import { $, $$, esc, store, session, toast, modal, download, copyText, waLink, fmtDate } from './util.js';
+import { openOffice, merekNibHTML, pengeluaranHTML, wirePengeluaran } from './office.js';
 
-let admin = null; // { pass, base: [], generated }
-const ui = { q: '', f: 'all' };
+let admin = null; // { pass, role: 'super' | 'ops', base: [], generated, office }
+const ui = { q: '', f: 'all', tab: null, month: 'all' };
 const LOCAL = 'arthera_admin_local';
 const DELETED = 'arthera_admin_deleted';
 
@@ -15,11 +16,57 @@ export async function restoreAdmin() {
   const p = session.get('arthera_admin');
   if (p && !admin) { try { await unlock(p); } catch { session.del('arthera_admin'); } }
 }
+// Super Admin membuka database klien + menu kantor; Admin 2 hanya menu kantor (Merek & NIB, Pengeluaran).
 async function unlock(pass) {
   const v = await loadVault();
-  const data = await decryptJSON(v.admin, pass);
-  admin = { pass, base: data.full || data.clients || [], generated: v.generated };
+  try {
+    const data = await decryptJSON(v.admin, pass);
+    let office = null;
+    try { office = await openOffice(pass, 'super'); } catch { /* data kantor belum tersedia */ }
+    admin = { pass, role: 'super', base: data.full || data.clients || [], generated: v.generated, office };
+  } catch {
+    const office = await openOffice(pass, 'ops');
+    admin = { pass, role: 'ops', base: [], generated: v.generated, office };
+  }
+  ui.tab = admin.role === 'super' ? 'klien' : 'merek';
   session.set('arthera_admin', pass);
+}
+
+const TABS = [
+  { k: 'klien', t: 'Database Klien', s: 'Akses portal, data & publikasi', i: 'users', roles: ['super'] },
+  { k: 'merek', t: 'Merek & NIB', s: 'Status permohonan & dokumen output', i: 'award', roles: ['super', 'ops'] },
+  { k: 'biaya', t: 'Pengeluaran', s: 'Daftar biaya & bukti transfer', i: 'file-check-2', roles: ['super', 'ops'] }
+];
+function menuHTML() {
+  const tabs = TABS.filter((t) => t.roles.includes(admin.role));
+  const count = { klien: admin.role === 'super' ? records().filter((r) => !r._deleted).length : 0, merek: (admin.office?.matters || []).length, biaya: (admin.office?.expenses || []).length };
+  return `<nav class="adm-menu" aria-label="Menu admin">${tabs.map((t) => `
+    <button class="card adm-tile ${ui.tab === t.k ? 'on' : ''}" data-tab="${t.k}" aria-current="${ui.tab === t.k}">
+      <span class="adm-ic">${icon(t.i)}</span>
+      <span class="adm-tx"><b>${t.t}</b><small>${t.s}</small></span>
+      <span class="adm-n">${count[t.k]}</span>
+    </button>`).join('')}</nav>`;
+}
+
+function renderOffice(view, nav) {
+  const roleLabel = admin.role === 'super' ? 'Super Admin' : 'Admin';
+  const tab = TABS.find((t) => t.k === ui.tab);
+  const office = admin.office || { matters: [], expenses: [] };
+  view.innerHTML = `
+  <section class="page-head dark"><div class="frame-lines"></div>
+    <div class="wrap"><div class="head-row">
+      <div><span class="eyebrow">Internal · ${roleLabel}</span><h1 class="h2">${tab.t}</h1><p class="lead">${tab.s}.</p></div>
+      <div class="head-actions"><button class="btn btn-ghost" id="aLock">${icon('lock')} Kunci panel</button></div>
+    </div></div>
+  </section>
+  <div class="wrap" style="padding:28px 0 90px">
+    ${menuHTML()}
+    ${admin.office ? '' : `<div class="notice">${icon('alert')}<span>Data Merek & NIB dan Pengeluaran belum tersedia untuk kata sandi ini.</span></div>`}
+    ${ui.tab === 'merek' ? merekNibHTML(office) : pengeluaranHTML(office, ui)}
+  </div>`;
+  $$('[data-tab]', view).forEach((b) => b.addEventListener('click', () => { ui.tab = b.dataset.tab; renderAdmin(view, nav); }));
+  $('#aLock', view).addEventListener('click', () => { admin = null; session.del('arthera_admin'); toast('Panel admin dikunci'); renderAdmin(view, nav); });
+  if (ui.tab === 'biaya') wirePengeluaran(view, office, ui, () => renderOffice(view, nav));
 }
 
 const clean = (r) => { const { _src, _pending, ...x } = r; return x; };
@@ -40,6 +87,8 @@ function records() {
 
 export function renderAdmin(view, nav) {
   if (!admin) return renderGate(view, nav);
+  if (!TABS.some((t) => t.k === ui.tab && t.roles.includes(admin.role))) ui.tab = admin.role === 'super' ? 'klien' : 'merek';
+  if (ui.tab !== 'klien') return renderOffice(view, nav);
   const all = records();
   const live = all.filter((r) => !r._deleted);
   const pending = all.filter((r) => r._pending).length;
@@ -58,6 +107,7 @@ export function renderAdmin(view, nav) {
     </div></div>
   </section>
   <div class="wrap" style="padding:28px 0 90px">
+    ${menuHTML()}
     ${pending ? `<div class="notice">${icon('alert')}<div class="grow"><b>${pending} perubahan belum dipublikasikan.</b> Klien baru hanya dapat masuk dari perangkat lain setelah Anda menekan <b>Publikasikan</b> dan mengunggah <span class="mono">vault.json</span> ke GitHub.</div><button class="btn btn-dark btn-sm" id="aPublish">${icon('send')} Publikasikan</button></div>`
       : `<div class="notice" style="background:#EEF6F0;border-color:#C6DDCD;color:#2F5B45">${icon('check-circle')}<span>Semua data sudah sinkron dengan versi terbit (${admin.generated ? fmtDate(new Date(admin.generated)) : '-'}).</span></div>`}
     <div class="admin-stats">
@@ -93,6 +143,7 @@ export function renderAdmin(view, nav) {
   </div>`;
 
   const rerender = () => renderAdmin(view, nav);
+  $$('[data-tab]', view).forEach((b) => b.addEventListener('click', () => { ui.tab = b.dataset.tab; rerender(); }));
   $('#aAdd', view).addEventListener('click', () => editModal(null, rerender));
   $('#aImport', view).addEventListener('click', () => importModal(rerender));
   $('#aPublish', view)?.addEventListener('click', () => publish());
