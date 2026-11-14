@@ -73,12 +73,13 @@ export function pengeluaranHTML(office, ui) {
   const months = [...new Set(all.map((e) => e.tanggal.slice(0, 7)))];
   const list = ui.month === 'all' ? all : all.filter((e) => e.tanggal.startsWith(ui.month));
   const sum = list.reduce((s, e) => s + total(e), 0);
-  const fee = list.reduce((s, e) => s + (Number(e.biaya) || 0), 0);
+  const open = list.filter((e) => !e.lunas).reduce((s, e) => s + total(e), 0);
+  const paid = list.filter((e) => e.lunas).reduce((s, e) => s + total(e), 0);
   return `
     <div class="admin-stats off-stats">
-      <div class="card astat"><b>${rp(sum)}</b><span>Total pengeluaran</span></div>
-      <div class="card astat"><b>${list.length}</b><span>Transaksi</span></div>
-      <div class="card astat"><b>${rp(fee)}</b><span>Biaya transfer</span></div>
+      <div class="card astat"><b>${rp(open)}</b><span>Belum lunas</span></div>
+      <div class="card astat"><b>${rp(paid)}</b><span>Sudah lunas</span></div>
+      <div class="card astat"><b>${rp(sum)}</b><span>Total · ${list.length} transaksi</span></div>
     </div>
     <div class="admin-tools">
       <div class="chips-scroll">${[['all', 'Semua'], ...months.map((m) => [m, bulan(m + '-01')])].map(([k, l]) => `<button class="chip ${ui.month === k ? 'on' : ''}" data-m="${k}">${esc(l)}</button>`).join('')}</div>
@@ -88,13 +89,14 @@ export function pengeluaranHTML(office, ui) {
       </div>
     </div>
     <div class="off-exp">${list.length ? list.map((e) => `
-      <article class="card off-row">
+      <article class="card off-row ${e.lunas ? 'is-paid' : ''}">
         <div class="off-date"><b>${esc(e.tanggal.slice(8, 10))}</b><span>${esc(bulan(e.tanggal))}</span>${e.waktu ? `<small>${esc(e.waktu)}</small>` : ''}</div>
         <div class="off-main">
           <div class="nm">${esc(e.uraian)}</div>
           <div class="sub">${esc(e.penerima || '-')}${e.bankTujuan ? ` · ${esc(e.bankTujuan)}` : ''}${e.rekTujuan ? ` ${esc(e.rekTujuan)}` : ''}${e.metode ? ` · ${esc(e.metode)}` : ''}</div>
           <div class="row mt-1" style="gap:6px;flex-wrap:wrap">
             ${e.keperluan ? `<span class="off-tag">${esc(e.keperluan)}</span>` : '<span class="pill pill-warn"><span class="dot"></span>Keperluan belum dicatat</span>'}
+            ${e.lunas ? `<span class="pill pill-ok"><span class="dot"></span>Lunas · ${esc(tgl(e.lunas.tanggal))}${e.lunas.oleh ? ` · ${esc(e.lunas.oleh)}` : ''}</span>` : ''}
             ${e._local ? '<span class="pill pill-warn"><span class="dot"></span>Catatan di perangkat ini</span>' : ''}
           </div>
         </div>
@@ -114,13 +116,13 @@ export function wirePengeluaran(view, office, ui, rerender) {
   $('#eCsv', view)?.addEventListener('click', () => {
     const cols = [['tanggal', 'Tanggal'], ['waktu', 'Waktu'], ['uraian', 'Uraian'], ['keperluan', 'Keperluan'], ['penerima', 'Penerima'], ['bankTujuan', 'Bank tujuan'], ['metode', 'Metode'], ['nominal', 'Nominal'], ['biaya', 'Biaya'], ['ref', 'Referensi']];
     const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csv = [['No', ...cols.map((c) => c[1]), 'Total'].join(','), ...all.map((e, i) => [i + 1, ...cols.map(([k]) => q(e[k])), total(e)].join(','))].join('\n');
+    const csv = [['No', ...cols.map((c) => c[1]), 'Total', 'Status'].join(','), ...all.map((e, i) => [i + 1, ...cols.map(([k]) => q(e[k])), total(e), q(e.lunas ? `Lunas ${e.lunas.tanggal}` : 'Belum lunas')].join(','))].join('\n');
     download(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), 'Pengeluaran Arthera.csv');
     toast('Pengeluaran diekspor ke CSV');
   });
   $$('[data-ex]', view).forEach((b) => b.addEventListener('click', () => {
     const e = all.find((x) => x.id === b.dataset.ex); if (!e) return;
-    const rows = [['Tanggal', `${tgl(e.tanggal)}${e.waktu ? `, ${e.waktu} WIB` : ''}`], ['Uraian', e.uraian], ['Keperluan', e.keperluan || 'Belum dicatat'], ['Penerima', e.penerima], ['Bank tujuan', [e.bankTujuan, e.rekTujuan].filter(Boolean).join(' ')], ['Dari', e.dariBank], ['Metode', e.metode], ['Nominal', rp(e.nominal)], ['Biaya', rp(e.biaya)], ['Total', rp(total(e))], ['Referensi', e.ref], ['Dicatat', e.dicatat]].filter(([, v]) => v);
+    const rows = [['Tanggal', `${tgl(e.tanggal)}${e.waktu ? `, ${e.waktu} WIB` : ''}`], ['Uraian', e.uraian], ['Keperluan', e.keperluan || 'Belum dicatat'], ['Penerima', e.penerima], ['Bank tujuan', [e.bankTujuan, e.rekTujuan].filter(Boolean).join(' ')], ['Dari', e.dariBank], ['Metode', e.metode], ['Nominal', rp(e.nominal)], ['Biaya', rp(e.biaya)], ['Total', rp(total(e))], ['Referensi', e.ref], ['Dicatat', e.dicatat], ['Status', e.lunas ? `Lunas ${tgl(e.lunas.tanggal)}${e.lunas.oleh ? ` oleh ${e.lunas.oleh}` : ''}` : 'Belum lunas'], ['Cara pelunasan', e.lunas && e.lunas.cara]].filter(([, v]) => v);
     modal({
       eyebrow: 'Rincian pengeluaran', title: esc(e.uraian), width: 720,
       body: `<div class="off-detail"><dl class="off-dl">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>

@@ -1161,3 +1161,5 @@ body { font-size: 16.5px; line-height: 1.75; color: var(--text); }
   .off-row .acts { grid-column: 3; grid-row: 1; }
   .off-matter { padding: 18px 16px; }
 }
+.off-row.is-paid { background: #F6F4EE; }
+.off-row.is-paid .nm, .off-row.is-paid .off-amt b, .off-row.is-paid .off-amt span { text-decoration: line-through; text-decoration-color: rgba(30, 30, 30, .55); color: var(--muted); }
