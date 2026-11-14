@@ -1,5 +1,6 @@
 // Halaman publik: Beranda, Layanan, Company Profile, Tim
 import { SERVICES, PRACTICE_AREAS, TEAM } from './data-core.js';
+import { tarifMerekHTML, TARIF_PDF } from './tarif-merek.js';
 import { FIRM, SERVICE_META, FIRM_VALUES, WHY_ARTHERA, PILLARS, CLIENT_GROUPS } from './data-extra.js';
 import { icon } from './icons.js';
 import { bookStageHTML, mountBook, coverArt } from './book.js';
@@ -140,7 +141,7 @@ export function renderHome(view, nav) {
       <div>
         <span class="eyebrow reveal">Konsultasi</span>
         <h2 class="h2 reveal mt-1">Bicarakan kebutuhan hukum Anda<br><em class="it gold-text">langsung dengan Partner.</em></h2>
-        <p class="lead reveal mt-2">Rincian biaya (Offering Letter maupun Daftar Tarif Resmi) kami sampaikan langsung melalui email atau WhatsApp, sesuai ruang lingkup yang Anda butuhkan.</p>
+        <p class="lead reveal mt-2">Daftar Tarif Layanan Merek dapat dilihat dan diunduh di <a class="btn-link" href="#/layanan/merek/1">halaman layanan Merek</a>. Untuk layanan lain, penawaran biaya kami sampaikan langsung melalui email atau WhatsApp sesuai ruang lingkup yang Anda butuhkan.</p>
         <div class="row mt-3 reveal"><button class="btn btn-gold" data-contact>${icon('message-circle')} Tulis pesan</button><a class="btn btn-ghost" href="mailto:${FIRM.email}">${icon('mail')} Email</a></div>
       </div>
       <div class="contact-cards">
@@ -219,7 +220,7 @@ export function renderService(view, key, step, nav) {
     <div class="crumbs"><a href="#/">Beranda</a> / <a href="#/layanan">Layanan</a> / <span>${esc(SERVICE_META[key].short)}</span></div>
     <div class="head-row">
       <div><span class="eyebrow">Layanan ${ROMAN[idx]} · ${esc(srv.category)}</span><h1 class="h2">${esc(srv.title)}</h1><p class="lead">${esc(srv.subtitle)}</p></div>
-      <div class="head-actions"><button class="btn btn-ghost" data-contact>${icon('message-circle')} Tanya Penawaran Biaya</button></div>
+      <div class="head-actions">${key === 'merek' ? `<a class="btn btn-gold" href="#tarif" data-tarif>${icon('file-text')} Daftar Tarif</a>` : ''}<button class="btn btn-ghost" data-contact>${icon('message-circle')} Tanya Penawaran Biaya</button></div>
     </div>
   </div></section>
   <div class="stepper-wrap"><div class="wrap"><div class="stepper" role="tablist">
@@ -235,6 +236,7 @@ export function renderService(view, key, step, nav) {
         ${srv.flowSteps.map((s) => `<div class="tl-item reveal"><div class="tl-medal">${s.no}</div><div class="card tl-body"><div class="tl-top"><h3 class="h4">${esc(s.title)}</h3><span class="pill pill-gold">${icon('clock')} ${esc(s.time)}</span></div><p>${esc(s.desc)}</p></div></div>`).join('')}
       </div>
       <p class="small muted mt-3 reveal it">${esc(srv.flowFootnote)}</p>
+      ${key === 'merek' ? tarifMerekHTML() : ''}
       <div class="form-foot reveal"><a class="btn btn-ghost" href="#/layanan/${key}/3">${icon('key-round')} Sudah terdaftar? Masuk Portal</a><a class="btn btn-gold btn-lg" href="#/layanan/${key}/2">Lanjut ke Registrasi ${icon('arrow-right')}</a></div>`;
   } else if (step === 2) {
     renderForm(body, key, nav);
@@ -249,6 +251,11 @@ export function renderService(view, key, step, nav) {
     }
   }
   $$('[data-contact]', view).forEach((b) => b.addEventListener('click', () => contactModal(key)));
+  $$('[data-tarif]', view).forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (step !== 1) { nav(`#/layanan/${key}/1`); setTimeout(() => document.getElementById('tarif')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); }
+    else document.getElementById('tarif')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
 }
 
 function renderForm(body, key, nav) {
@@ -413,7 +420,7 @@ export function contactModal(serviceKey = null) {
     title: 'Hubungi Partner kami',
     width: 680,
     body: `
-      <p class="muted">Rincian biaya (Offering Letter maupun Daftar Tarif Resmi) disampaikan langsung oleh Partner sesuai ruang lingkup kebutuhan Anda.</p>
+      <p class="muted">Daftar Tarif Layanan Merek tersedia di <a class="btn-link" href="${TARIF_PDF}" target="_blank" rel="noopener">PDF ini</a>. Untuk layanan lain, penawaran biaya disampaikan langsung oleh Partner sesuai ruang lingkup kebutuhan Anda.</p>
       <div class="form-grid mt-3">
         <div class="field"><label>Nama Anda</label><input class="input" id="cName" placeholder="Nama lengkap / perusahaan"></div>
         <div class="field"><label>Layanan</label><select class="select" id="cSrv">${KEYS.map((k) => `<option value="${k}" ${k === serviceKey ? 'selected' : ''}>${esc(SERVICES[k].title)}</option>`).join('')}<option value="">Lainnya / belum yakin</option></select></div>
