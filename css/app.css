@@ -1163,3 +1163,48 @@ body { font-size: 16.5px; line-height: 1.75; color: var(--text); }
 }
 .off-row.is-paid { background: #F6F4EE; }
 .off-row.is-paid .nm, .off-row.is-paid .off-amt b, .off-row.is-paid .off-amt span { text-decoration: line-through; text-decoration-color: rgba(30, 30, 30, .55); color: var(--muted); }
+
+/* ---------- Daftar Tarif Layanan Merek ---------- */
+.tarif { margin-top: 48px; padding-top: 36px; border-top: 1px solid var(--line); scroll-margin-top: calc(var(--top-h) + 96px); }
+.tarif-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.tarif-head p { margin: 4px 0 0; }
+.tarif-pack { margin-bottom: 34px; }
+.tarif-pack-intro p { margin: 6px 0 18px; text-align: justify; color: var(--text); line-height: 1.65; }
+.tarif-prices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.tarif-price { padding: 20px 20px 18px; display: flex; flex-direction: column; gap: 4px; }
+.tarif-price .tp-k { font: 700 10.5px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--gold-dk); }
+.tarif-price b { font: 500 2.1rem/1.1 var(--serif); color: var(--forest); margin: 6px 0 2px; }
+.tarif-price .tp-s { font-size: 13.5px; line-height: 1.45; }
+.tarif-price .tp-n { font-size: 12.5px; color: var(--muted); margin-top: auto; padding-top: 10px; border-top: 1px dashed var(--line); }
+.tarif-price.dark { background: var(--forest); color: var(--cream); border-color: rgba(215, 180, 114, .4); }
+.tarif-price.dark b { color: var(--gold-2); }
+.tarif-price.dark .tp-k { color: var(--gold-2); }
+.tarif-price.dark .tp-n { color: rgba(242, 233, 216, .7); border-top-color: rgba(215, 180, 114, .3); }
+.tarif-block { margin-bottom: 30px; }
+.tarif-h { display: flex; align-items: center; gap: 12px; font: 600 1.35rem/1.2 var(--serif); margin: 0 0 12px; }
+.tarif-h span { font: 600 12px/1 var(--sans); letter-spacing: .1em; color: var(--gold-dk); padding: 6px 9px; border: 1px solid #E2C78E; border-radius: 99px; background: #F7EBCF; }
+.tarif-p { margin: 0 0 12px; text-align: justify; }
+.tarif-scope { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; }
+.tarif-scope li { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.tarif-scope .n { font: 600 13px/1.6 var(--sans); color: var(--gold-dk); }
+.tarif-scope b { font-size: 14.5px; }
+.tarif-scope p { margin: 3px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.55; text-align: justify; }
+.tarif-table { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--paper); }
+.tarif-table .tr { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 14px; padding: 12px 16px; border-top: 1px solid var(--line); align-items: center; }
+.tarif-table .tr:first-child { border-top: 0; }
+.tarif-table.three .tr { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 200px; }
+.tarif-table .th { background: #F3EEE3; font: 700 10.5px/1.4 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.tarif-table .t { font-weight: 600; font-size: 14px; }
+.tarif-table .d { font-size: 13.5px; color: var(--muted); }
+.tarif-table .f { text-align: right; }
+.tarif-table .f b { display: block; font-size: 14.5px; color: var(--forest); }
+.tarif-table .f small { display: block; font-size: 12px; color: var(--muted); }
+.tarif-terms { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.tarif-terms li { text-align: justify; line-height: 1.6; font-size: 14px; }
+@media (max-width: 760px) {
+  .tarif-prices, .tarif-scope { grid-template-columns: 1fr; }
+  .tarif-table .tr, .tarif-table.three .tr { grid-template-columns: 1fr; gap: 4px; }
+  .tarif-table .th { display: none; }
+  .tarif-table .f { text-align: left; }
+  .tarif-head .btn { width: 100%; justify-content: center; }
+}
